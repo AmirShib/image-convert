@@ -1,6 +1,5 @@
 import cv2 
 import numpy as np
-from pydantic import BaseModel 
 from abc import ABC, abstractmethod
 from typing import Tuple
 
@@ -13,13 +12,11 @@ class BaseConverter(ABC):
 
 class CartoonConverter(BaseConverter):
     
-    def convert(self, input_image: dict) -> dict:
-        url = input_image['url']
-        img = cv2.imread(url)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def convert(self, input_image: np.ndarray) -> dict:
+        gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         gray = cv2.medianBlur(gray, 5)
         edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
-        color = cv2.bilateralFilter(img, 9, 300, 300)
+        color = cv2.bilateralFilter(input_image, 9, 300, 300)
         cartoon = cv2.bitwise_and(color, color, mask=edges)
         
         return {"img": cartoon}
@@ -40,10 +37,8 @@ class DrawingConverter(BaseConverter):
         self.sharpen_value = sharpen_value
         self.kernel = np.array([[0, -1, 0], [-1, sharpen_value,-1], [0, -1, 0]]) if kernel == None else kernel
     
-    def convert(self, input_image: dict) -> dict:
-        url = input_image['url']
-        img = cv2.imread(url)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    def convert(self, input_image: np.ndarray) -> dict:
+        gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         
         inverted_img = 255 - gray
 
@@ -80,9 +75,8 @@ class AsciConverter(BaseConverter):
         def __init__(self, scale: int = 1) -> None:
             self.scale = scale
         
-        def convert(self, input_image: dict) -> dict:
-            url = input_image['url']
-            img = cv2.imread(url, cv2.IMREAD_GRAYSCALE)
+        def convert(self, input_image: np.ndarray) -> dict:
+            img = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
             img = cv2.resize(img, (int(img.shape[1] * self.scale), int(img.shape[0] * self.scale)))
             ascii_str = ''
             for row in img:
@@ -105,3 +99,18 @@ class AsciConverter(BaseConverter):
             pixel = max(0, min(255, pixel))  # Ensure pixel is within [0, 255]
             scale_factor = 255 / (len(ascii_chars) - 1)
             return ascii_chars[int(pixel / scale_factor)]
+
+
+class Converter_factory:
+    def __init__(self,converter_type: str) -> None:
+        self.converter_type = converter_type
+        
+    def __call__(self) -> BaseConverter:
+        if self.converter_type == "cartoon":
+            return CartoonConverter()
+        elif self.converter_type == "drawing":
+            return DrawingConverter()
+        elif self.converter_type == "ascii":
+            return AsciConverter()
+        else:
+            raise ValueError("Invalid converter type")
