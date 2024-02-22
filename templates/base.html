@@ -2,10 +2,26 @@
 <html>
 <head>
     <title>Image Covnerter</title>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
 </head>
-<body>
-    <header>
-        <h1>Convert images to different styles</h1>
-    </header>
+<body >
+    <div class="container">
+        <header>
+            <h1 class="headertext">Convert Images to different styles</h1>
+        </header>
+        <form id='form' hx-encoding='multipart/form-data' hx-post='/converters/' hx-swap="#response">
+            <input type='file' name='file'>
+            <select id="styleSelector" name="style">
+                <option value="cartoon">Cartoon</option>
+                <option value="drawing">Drawing</option>
+                <option value="ascii">ASCII</option>
+            </select>
+            <button>
+                Upload
+            </button>
+        </form>
+        <div id="response"></div>
+    </div>
 </body>
 </html>
